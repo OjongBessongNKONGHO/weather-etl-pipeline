@@ -32,7 +32,7 @@ def load_weather(df: pd.DataFrame) -> None:
 
     records_loaded = 0
 
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         for _, row in df.iterrows():
             # Check for existing record to avoid duplicates
             check = text("""
@@ -58,7 +58,5 @@ def load_weather(df: pd.DataFrame) -> None:
                 """)
                 conn.execute(insert, row.to_dict())
                 records_loaded += 1
-
-        conn.commit()
 
     print(f"✅ Loaded {records_loaded} new records into PostgreSQL.")
