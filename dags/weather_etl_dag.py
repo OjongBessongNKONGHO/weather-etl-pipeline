@@ -37,6 +37,8 @@ def run_extract(**context):
 def run_transform(**context):
     raw_data = context["ti"].xcom_pull(key="raw_data", task_ids="extract")
     df = transform_weather(raw_data)
+    # Convert Timestamps to strings so XCom can serialize them
+    df["recorded_at"] = df["recorded_at"].astype(str)
     records = df.to_dict(orient="records")
     context["ti"].xcom_push(key="transformed_data", value=records)
     print(f"✅ Transformed {len(records)} records.")
@@ -46,9 +48,10 @@ def run_load(**context):
     import pandas as pd
     records = context["ti"].xcom_pull(key="transformed_data", task_ids="transform")
     df = pd.DataFrame(records)
+    # Convert recorded_at back to datetime after XCom deserialization
+    df["recorded_at"] = pd.to_datetime(df["recorded_at"])
     load_weather(df)
     print(f"✅ Load complete.")
-
 
 with DAG(
     dag_id="weather_etl_pipeline",
