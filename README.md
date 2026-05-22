@@ -6,6 +6,9 @@
 ![Python](https://img.shields.io/badge/Python-3.8-3776AB?style=flat&logo=python)
 ![Status](https://img.shields.io/badge/Status-Active-success?style=flat)
 
+![CI](https://github.com/OjongBessongNKONGHO/weather-etl-pipeline/actions/workflows/ci.yml/badge.svg)
+
+
 An automated, production-grade ETL pipeline that extracts real-time weather data from the OpenWeatherMap API, transforms and validates it with Python and Pandas, loads it into PostgreSQL, and orchestrates the full workflow with Apache Airflow — all containerized with Docker Compose.
 
 Built as part of my Data Engineering portfolio to demonstrate end-to-end pipeline design, orchestration, and containerized infrastructure.
