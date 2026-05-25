@@ -17,19 +17,44 @@ Built as part of my Data Engineering portfolio to demonstrate end-to-end pipelin
 
 ## 📐 Architecture
 
+```mermaid
+flowchart TD
+    subgraph External
+        API[🌐 OpenWeatherMap API\n5 cities every hour]
+    end
+
+    subgraph Docker Compose Stack
+        subgraph Airflow Orchestrator
+            SCHED[⏰ Scheduler\nEvery 1 hour]
+            WEB[🖥️ Webserver\nlocalhost:8080]
+        end
+
+        subgraph ETL Pipeline
+            E[📥 Extract\nrequests + .env config]
+            T[⚙️ Transform\nPandas — validate + clean]
+            L[📤 Load\nSQLAlchemy — deduplicate + upsert]
+        end
+
+        subgraph Storage
+            DB[(🗄️ PostgreSQL\nweather_db)]
+        end
+    end
+
+    API -->|JSON response| E
+    SCHED -->|triggers| E
+    E -->|raw data| T
+    T -->|clean records| L
+    L -->|INSERT| DB
+    WEB -->|monitors| SCHED
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  Apache Airflow (Orchestrator)           │
-│                  Schedule: every 1 hour                  │
-│                                                          │
-│   ┌───────────┐    ┌─────────────┐    ┌─────────────┐   │
-│   │  Extract  │───▶│  Transform  │───▶│    Load     │   │
-│   └───────────┘    └─────────────┘    └─────────────┘   │
-│         │                │                  │           │
-│   OpenWeatherMap     Pandas/Python      PostgreSQL       │
-│       API           (clean + validate)   (weather_db)   │
-└─────────────────────────────────────────────────────────┘
-```
+
+### Data Flow
+
+1. **Airflow scheduler** triggers the `weather_etl` DAG every hour
+2. **Extract** calls OpenWeatherMap API for Paris, London, New York, Tokyo and Douala
+3. **Transform** normalises temperatures, validates data types and handles missing values with Pandas
+4. **Load** inserts clean records into PostgreSQL with deduplication — safe to retry without duplicates
+5. **Airflow webserver** at localhost:8080 provides live DAG monitoring, task logs and retry controls
 
 ### How it works
 
