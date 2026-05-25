@@ -56,6 +56,8 @@ flowchart TD
 4. **Load** inserts clean records into PostgreSQL with deduplication — safe to retry without duplicates
 5. **Airflow webserver** at localhost:8080 provides live DAG monitoring, task logs and retry controls
 
+---
+
 ### How it works
 
 1. **Extract** — Calls the OpenWeatherMap REST API for 5 cities and returns raw JSON records
