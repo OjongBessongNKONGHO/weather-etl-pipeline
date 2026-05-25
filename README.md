@@ -82,12 +82,29 @@ flowchart TD
 ## ✨ Features
 
 - **Hourly automation** — Airflow triggers the pipeline every hour without manual intervention
-- **5 cities tracked** — Paris, London, New York, Tokyo, Douala
+- **5 cities tracked** — Paris, London, New York, Tokyo, Douala across 4 continents
 - **Robust transformation** — handles missing values, validates types, enriches data with derived columns
-- **Idempotent loading** — duplicate records are detected and skipped on every run
+- **Idempotent loading** — duplicate records detected and skipped on every run — safe to retry
 - **Retry logic** — each task retries 2 times with a 5-minute delay on failure
 - **One-command setup** — entire stack starts with a single Docker Compose command
-- **Clean separation of concerns** — extract, transform, and load are fully independent modules
+- **Clean separation of concerns** — extract, transform and load are fully independent modules
+- **8 unit tests** — covering temperature conversion, humidity range, wind speed, pressure and city list
+- **CI/CD** — GitHub Actions runs tests automatically on every push
+
+## 📊 Pipeline Metrics
+
+| Metric | Value |
+|---|---|
+| Cities tracked | 5 — Paris, London, New York, Tokyo, Douala |
+| Continents covered | 4 — Europe, Americas, Asia, Africa |
+| Pipeline schedule | Every 1 hour |
+| Records per run | 5 records — 1 per city |
+| Records per day | ~120 records |
+| Retry attempts | 2 retries with 5-minute delay |
+| Unit tests | 8 passing |
+| CI status | GitHub Actions — passing |
+| Deployment | Docker Compose — 3 containers |
+| Setup time | Under 2 minutes |
 
 ---
 
