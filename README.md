@@ -88,7 +88,7 @@ flowchart TD
 - **Retry logic** — each task retries 2 times with a 5-minute delay on failure
 - **One-command setup** — entire stack starts with a single Docker Compose command
 - **Clean separation of concerns** — extract, transform and load are fully independent modules
-- **8 unit tests** — covering temperature conversion, humidity range, wind speed, pressure and city list
+- **20 unit tests** — covering temperature conversion, humidity boundaries, wind speed, pressure, city list, record structure and data types
 - **CI/CD** — GitHub Actions runs tests automatically on every push
 
 ## 📊 Pipeline Metrics
@@ -101,7 +101,7 @@ flowchart TD
 | Records per run | 5 records — 1 per city |
 | Records per day | ~120 records |
 | Retry attempts | 2 retries with 5-minute delay |
-| Unit tests | 8 passing |
+| Unit tests | 20 passing |
 | CI status | GitHub Actions — passing |
 | Deployment | Docker Compose — 3 containers |
 | Setup time | Under 2 minutes |
