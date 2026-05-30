@@ -123,6 +123,7 @@ weather-etl-pipeline/
 │   └── init_db.sql               # Creates DB, user, table schema and indexes
 │
 ├── docker-compose.yml            # Spins up Airflow webserver, scheduler, PostgreSQL
+├── Makefile                      # Shortcuts — make up, down, restart, logs, status, test, init, clean
 ├── requirements.txt              # All Python dependencies
 ├── .env.example                  # Environment variable template (safe to commit)
 ├── .gitignore                    # Excludes logs, cache, .env, data
