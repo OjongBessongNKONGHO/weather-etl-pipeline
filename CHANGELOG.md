@@ -16,3 +16,8 @@ All notable changes to this project are documented here.
 - Makefile with shortcuts for up, down, logs, test and clean
 - Mermaid architecture diagram in README
 - Sample output table in README
+
+## [1.0.1] - 2026-06-01
+
+### Improved
+- Added project roadmap: next steps include DuckDB analytics integration and cloud deployment on AWS
