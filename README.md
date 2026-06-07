@@ -90,6 +90,7 @@ flowchart TD
 - **Clean separation of concerns** — extract, transform and load are fully independent modules
 - **20 unit tests** — covering temperature conversion, humidity boundaries, wind speed, pressure, city list, record structure and data types
 - **CI/CD** — GitHub Actions runs tests automatically on every push
+- **Exponential backoff retry** — failed API requests retry up to 3 times with 2s, 4s wait between attempts
 
 ## 📊 Pipeline Metrics
 
