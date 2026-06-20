@@ -32,6 +32,7 @@ flowchart TD
         subgraph ETL Pipeline
             E[📥 Extract\nrequests + .env config]
             T[⚙️ Transform\nPandas — validate + clean]
+            V[✅ Validate\n7 data quality checks]
             L[📤 Load\nSQLAlchemy — deduplicate + upsert]
         end
 
@@ -43,7 +44,8 @@ flowchart TD
     API -->|JSON response| E
     SCHED -->|triggers| E
     E -->|raw data| T
-    T -->|clean records| L
+    T -->|clean records| V
+    V -->|validated records| L
     L -->|INSERT| DB
     WEB -->|monitors| SCHED
 ```
@@ -53,8 +55,9 @@ flowchart TD
 1. **Airflow scheduler** triggers the `weather_etl` DAG every hour
 2. **Extract** calls OpenWeatherMap API for Paris, London, New York, Tokyo and Douala
 3. **Transform** normalises temperatures, validates data types and handles missing values with Pandas
-4. **Load** inserts clean records into PostgreSQL with deduplication — safe to retry without duplicates
-5. **Airflow webserver** at localhost:8080 provides live DAG monitoring, task logs and retry controls
+4. **Validate** runs 7 data quality checks — nulls, type ranges, duplicates — and fails the DAG run if any check fails, before bad data ever reaches PostgreSQL
+5. **Load** inserts clean, validated records into PostgreSQL with deduplication — safe to retry without duplicates
+6. **Airflow webserver** at localhost:8080 provides live DAG monitoring, task logs and retry controls
 
 ---
 
@@ -62,7 +65,8 @@ flowchart TD
 
 1. **Extract** — Calls the OpenWeatherMap REST API for 5 cities and returns raw JSON records
 2. **Transform** — Cleans nulls, validates and casts data types, removes duplicates, and adds a derived `temp_category` column (freezing / cold / mild / warm / hot)
-3. **Load** — Inserts clean records into PostgreSQL using SQLAlchemy, with duplicate detection on `(city, recorded_at)` to ensure idempotency
+3. **Validate** — Runs 7 data quality checks against the transformed data: not empty, required columns present, no nulls, temperature/humidity/pressure within plausible ranges, no duplicate (city, recorded_at) pairs. The DAG run fails if any check fails — bad data never reaches `load`
+4. **Load** — Inserts clean, validated records into PostgreSQL using SQLAlchemy, with duplicate detection on `(city, recorded_at)` to ensure idempotency
 
 ---
 
@@ -88,7 +92,8 @@ flowchart TD
 - **Retry logic** — each task retries 2 times with a 5-minute delay on failure
 - **One-command setup** — entire stack starts with a single Docker Compose command
 - **Clean separation of concerns** — extract, transform and load are fully independent modules
-- **20 unit tests** — covering temperature conversion, humidity boundaries, wind speed, pressure, city list, record structure and data types
+- **Data quality validation** — 7 checks run between transform and load: not empty, required columns, no nulls, temperature/humidity/pressure within plausible ranges, no duplicate (city, recorded_at) pairs. A failed check fails the DAG run before bad data reaches PostgreSQL
+- **37 unit tests** — covering temperature conversion, humidity boundaries, wind speed, pressure, city list, record structure, data types and data quality validation
 - **CI/CD** — GitHub Actions runs tests automatically on every push
 - **Exponential backoff retry** — failed API requests retry up to 3 times with 2s, 4s wait between attempts
 
@@ -102,7 +107,7 @@ flowchart TD
 | Records per run | 5 records — 1 per city |
 | Records per day | ~120 records |
 | Retry attempts | 2 retries with 5-minute delay |
-| Unit tests | 20 passing |
+| Unit tests | 37 passing |
 | CI status | GitHub Actions — passing |
 | Deployment | Docker Compose — 3 containers |
 | Setup time | Under 2 minutes |
@@ -120,6 +125,7 @@ weather-etl-pipeline/
 ├── scripts/
 │   ├── extract.py                # Hits OpenWeatherMap API, returns raw records
 │   ├── transform.py              # Cleans and validates data using Pandas
+│   ├── validate.py               # 7 data quality checks — fails the DAG run on bad data
 │   ├── load.py                   # Loads clean data into PostgreSQL via SQLAlchemy
 │   └── init_db.sql               # Creates DB, user, table schema and indexes
 │
@@ -213,7 +219,7 @@ Go to http://localhost:8080
 
 **6. Trigger the pipeline**
 
-Find `weather_etl_pipeline` in the DAGs list and click the ▶️ play button. Watch the pipeline execute through extract → transform → load in real time.
+Find `weather_etl_pipeline` in the DAGs list and click the ▶️ play button. Watch the pipeline execute through extract → transform → validate → load in real time.
 
 ---
 
@@ -241,6 +247,9 @@ Every component — Airflow webserver, scheduler, and PostgreSQL — runs in its
 
 **Why idempotent loading?**
 If the pipeline runs twice in the same hour (e.g. after a retry), we do not want duplicate rows. Each record is checked against `(city, recorded_at)` before insertion.
+
+**Why a separate validate task instead of validating inside transform?**
+`transform_weather()` cleans data — it drops obviously bad nulls and casts types. `validate_weather()` does something different: it decides whether the whole run is fit to load, checking the same fields again as a safety net in case a future change to transform lets something bad through. Keeping that decision as its own task means a failure shows up as its own red task in the Airflow UI, with its own log listing every problem found — not buried inside a transform step that reports success while quietly producing bad output. It also means the quality rules can be changed, tested, and reasoned about without touching the transformation code at all.
 
 **Why separate extract/transform/load modules?**
 Each concern is independent and testable. The DAG simply calls each function in order and passes data between tasks using Airflow XCom. This mirrors real production pipeline design.
