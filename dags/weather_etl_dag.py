@@ -7,6 +7,7 @@ sys.path.insert(0, '/opt/airflow/scripts')
 
 from extract import extract_weather
 from transform import transform_weather
+from validate import validate_weather
 from load import load_weather
 
 # Cities to track
@@ -17,7 +18,6 @@ CITIES = [
     "Tokyo",
     "Douala"
 ]
-
 default_args = {
     "owner": "ojong",
     "depends_on_past": False,
@@ -44,9 +44,27 @@ def run_transform(**context):
     print(f"✅ Transformed {len(records)} records.")
 
 
-def run_load(**context):
+def run_validate(**context):
     import pandas as pd
     records = context["ti"].xcom_pull(key="transformed_data", task_ids="transform")
+    df = pd.DataFrame(records)
+    df["recorded_at"] = pd.to_datetime(df["recorded_at"])
+
+    passed, problems = validate_weather(df)
+    if not passed:
+        raise ValueError(
+            f"Data quality validation failed with {len(problems)} issue(s): {problems}"
+        )
+
+    # Re-serialize for the next task — same pattern as run_transform
+    df["recorded_at"] = df["recorded_at"].astype(str)
+    records = df.to_dict(orient="records")
+    context["ti"].xcom_push(key="validated_data", value=records)
+
+
+def run_load(**context):
+    import pandas as pd
+    records = context["ti"].xcom_pull(key="validated_data", task_ids="validate")
     df = pd.DataFrame(records)
     # Convert recorded_at back to datetime after XCom deserialization
     df["recorded_at"] = pd.to_datetime(df["recorded_at"])
@@ -67,15 +85,17 @@ with DAG(
         task_id="extract",
         python_callable=run_extract,
     )
-
     transform = PythonOperator(
         task_id="transform",
         python_callable=run_transform,
     )
-
+    validate = PythonOperator(
+        task_id="validate",
+        python_callable=run_validate,
+    )
     load = PythonOperator(
         task_id="load",
         python_callable=run_load,
     )
 
-    extract >> transform >> load
+    extract >> transform >> validate >> load
